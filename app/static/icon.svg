@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14121f"/><stop offset="1" stop-color="#0a0a10"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9a86ff"><animate attributeName="stop-color" values="#9a86ff;#5b8cff;#9a86ff" dur="3s" repeatCount="indefinite"/></stop>
+      <stop offset="1" stop-color="#4b32c9"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="256" height="256" fill="url(#bg)"/>
+  <g filter="url(#glow)">
+    <path d="M148 28 L82 140 H122 L104 228 L176 108 H134 Z" fill="url(#bolt)" stroke="#b9acff" stroke-width="3" stroke-linejoin="round">
+      <animate attributeName="opacity" values="1;1;0.35;1;0.6;1;1" keyTimes="0;0.55;0.6;0.65;0.7;0.78;1" dur="3.2s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="scale" additive="sum" values="1;1;1.04;1;1" dur="3.2s" repeatCount="indefinite" calcMode="linear"/>
+    </path>
+  </g>
+</svg>

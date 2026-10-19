@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Heil Store Studio</title><link rel="icon" href="icon.svg">
+<style>
+:root{--bg:#0b0b0f;--card:#15151c;--line:#26262f;--tx:#ececf3;--mut:#8b8b9a;--ac:#7c5cff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 500px at 70% -10%,#1c1840,transparent),var(--bg);color:var(--tx);font:15px/1.5 -apple-system,Segoe UI,Inter,Helvetica,Arial,sans-serif}
+.w{max-width:960px;margin:0 auto;padding:28px 18px 60px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:22px}header img{width:48px;height:48px;border-radius:12px}
+h1{font-size:22px;margin:0}header p{margin:0;color:var(--mut);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+label{display:block;font-size:12px;color:var(--mut);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.06em}
+input,textarea,select{width:100%;background:#0f0f14;color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
+textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;min-height:200px;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ac)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:640px){.row{grid-template-columns:1fr}}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+button{background:#1f1f29;color:var(--tx);border:1px solid var(--line);border-radius:999px;padding:10px 18px;font:inherit;cursor:pointer}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}button:hover{filter:brightness(1.15)}button:disabled{opacity:.5}
+.ic{display:flex;gap:14px;align-items:center}#pv{width:64px;height:64px;border-radius:15px;background:#0f0f14;border:1px solid var(--line);overflow:hidden}#pv img{width:100%;height:100%;display:block}
+pre{background:#0f0f14;border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;font-size:12.5px;margin:6px 0}
+.msg{padding:10px 14px;border-radius:10px;margin:10px 0;font-size:14px}.err{background:#3a1620;border:1px solid #6b2434}.ok{background:#12301f;border:1px solid #1f5a37}.warn{background:#33290f;border:1px solid #5f4c17}
+small{color:var(--mut)}a{color:#a99bff}details summary{cursor:pointer;color:var(--mut)}
+</style></head><body><div class="w">
+<header><img src="icon.svg" alt=""><div><h1>Heil Store Studio</h1><p>Turn a compose file or <code>docker run</code> into an installable Umbrel app.</p></div></header>
+<div class="card">
+<div class="row"><div><label>App name</label><input id="name" placeholder="My Cool App"></div>
+<div><label>Category</label><select id="cat"></select></div></div>
+<label>Description (optional)</label><input id="desc" placeholder="One or two sentences about the app">
+<label>Icon (optional – SVG/PNG/JPG, auto-generated if empty)</label>
+<div class="ic"><div id="pv"></div><input type="file" id="file" accept="image/svg+xml,image/png,image/jpeg,image/webp,image/gif"></div>
+<label>docker-compose.yml or docker run command</label>
+<textarea id="src" spellcheck="false" placeholder="docker run -d --name myapp -p 8080:80 -v /srv/myapp:/data nginx:1.27"></textarea>
+<details><summary>Advanced</summary><div class="row"><div><label>Web service (compose)</label><input id="ws" placeholder="auto"></div><div><label>Web port inside container</label><input id="wp" placeholder="auto" inputmode="numeric"></div></div>
+<label style="text-transform:none"><input type="checkbox" id="pin" style="width:auto"> Pin image by digest (queries the registry)</label></details>
+<div class="btns"><button class="p" id="bgen">Preview</button><button id="bzip">Download .zip</button><button class="p" id="bpub">Publish to GitHub store</button></div>
+<div id="out"></div></div>
+<div class="card"><details><summary>Settings</summary><p><small>Store: <span id="repo"></span>. Publishing needs a GitHub token with <b>contents:write</b> on the store and assets repos. It is kept in <code>/data/settings.json</code> (mode 600) or read from env <code>HEILSS_GITHUB_TOKEN</code>.</small></p>
+<div class="row"><div><label>GitHub token <span id="tk"></span></label><input id="tok" type="password" autocomplete="off" placeholder="paste to set/replace"></div><div style="align-self:end"><button id="bsave">Save token</button></div></div></details></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);let iconData=null;
+fetch('api/settings').then(r=>r.json()).then(s=>{$('cat').innerHTML=s.categories.map(c=>`<option ${c=='Utilities'?'selected':''}>${c}</option>`).join('');$('repo').textContent=s.storeRepo;$('tk').textContent=s.tokenSet?'✓ set':'(not set)'});
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f){iconData=null;$('pv').innerHTML='';return}const b=new Uint8Array(await f.arrayBuffer());let s='';b.forEach(x=>s+=String.fromCharCode(x));iconData=btoa(s);$('pv').innerHTML=`<img src="${URL.createObjectURL(f)}">`};
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const body=()=>({name:$('name').value,description:$('desc').value,category:$('cat').value,source:$('src').value,webService:$('ws').value.trim(),webPort:$('wp').value.trim(),pin:$('pin').checked,icon:iconData?{data:iconData}:null});
+async function post(url,raw){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body())});if(raw&&r.ok)return r;const j=await r.json();if(!r.ok)throw new Error(j.error||'error');return j}
+function show(r,extra){let h=extra||'';(r.warnings||[]).forEach(w=>h+=`<div class="msg warn">⚠ ${esc(w)}</div>`);
+h+=`<p><b>${r.appId}</b> · v${r.version} · port ${r.port} · web ${r.webService}:${r.webPort} · icon ${r.icon}</p><div class="ic"><div id="pv" style="width:64px;height:64px"><img src="data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(r.iconSvg)))}"></div></div>`;
+for(const k in r.store)h+=`<small>${k}</small><pre>${esc(r.store[k])}</pre>`;$('out').innerHTML=h;$('pv').innerHTML=$('pv').innerHTML}
+async function run(fn,btn){btn.disabled=true;$('out').innerHTML='';try{await fn()}catch(e){$('out').innerHTML=`<div class="msg err">${esc(e.message)}</div>`}btn.disabled=false}
+$('bgen').onclick=()=>run(async()=>show(await post('api/convert')),$('bgen'));
+$('bpub').onclick=()=>run(async()=>{const r=await post('api/publish');show(r,`<div class="msg ok">Published ✓ <a href="${r.commitUrl}" target="_blank">commit</a>. In Umbrel: App Store → ⋯ → Community App Stores → add <b>https://github.com/${$('repo').textContent}</b> (once), then install <b>${r.appId}</b>.</div>`)},$('bpub'));
+$('bzip').onclick=()=>run(async()=>{const r=await post('api/zip',true);const b=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(($('name').value||'app').toLowerCase().replace(/[^a-z0-9]+/g,'-'))+'.zip';a.click()},$('bzip'));
+$('bsave').onclick=()=>run(async()=>{const r=await fetch('api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:$('tok').value})}).then(r=>r.json());$('tok').value='';$('tk').textContent=r.tokenSet?'✓ set':'(not set)'},$('bsave'));
+</script></body></html>
